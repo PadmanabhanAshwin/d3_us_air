@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>CS590: HW1, Problem 1</title>
+        <script type="text/javascript" src="d3/d3.js"></script>
+        <style type="text/css">
+        .axis--x path {
+            display: inline;
+            }
+        .line {
+            fill: none;
+            stroke: steelblue;
+            stroke-width: 1.5px;
+            }
+		</style>
+    </head>
+    <body>
+        <script type="text/javascript">
+
+            //Define the "margins" which will be used to set up the SVG container. 
+            var margin = {top: 20, right: 60, bottom: 30, left: 20},
+            width = 960 - margin.left - margin.right;
+            height = 500 - margin.top - margin.bottom;
+            
+            var svg = d3.select("body")
+                        .append("svg")
+                            .attr("width", width + margin.left + margin.right)
+                            .attr("height", height + margin.top + margin.bottom)
+                        .append("g")    // check g. 
+                           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            //Set up the axis. 
+
+            //Create a line generator object. 
+            var lineGenerator = d3.line().curve(d3.curveBasis);
+
+            //Import data AJAX call: 
+            d3.csv("data/old_cars.csv")
+                .then(function(data) {
+
+                    //Construct a new data structure. 
+                    //
+                    //
+                    //Getting the data. 
+                    function getdata(data){
+
+                    function onlyUnique(value, index, self) { 
+                        return self.indexOf(value) === index;
+                    }
+
+                    function getavg(data, country, modelyear){
+                        fullarr= [];
+                        //fullarr.countryname = country; 
+                        //fullarr.model = modelyear
+                        sum=0
+                        //console.log(data)
+                        for(i=0; i<+Object.keys(data).length-2; i++)
+                        {   
+                            //console.log(data[i]["Origin"])                       
+                            if((data[i]["Origin"] == country) && (data[i]["Model"] == modelyear)){
+                                fullarr.push({
+                                    mpg: +data[i].MPG
+                                })
+                            }
+                        }
+                        //console.log(fullarr)
+                        for (j=0 ; j <(+Object.keys(fullarr).length); j++){
+                            sum=sum+fullarr[j].mpg;
+                        }
+                        avg = sum/((+Object.keys(fullarr).length)); 
+                        //fullarr.avg = avg; 
+                        return(avg)
+                    } 
+                    //fullarr = getavg(data, "US", 70);
+                    //console.log(fullarr)
+                    let myData = [];
+                    myData.values = {};
+
+                    console.log(data);
+
+                    tempdata= [];
+                    tempdata.values = {};
+
+                    var countryList = data.map(d => d.Origin).filter(onlyUnique);
+                    var yearList = data.map(d => d.Model).filter(onlyUnique).sort();
+
+                    for(m=0; m<countryList.length; m++){
+                        tempdata = [];
+                        tempdata.values = {};
+                        for (l = 0 ; l<yearList.length; l++) {
+                            //console.log(yearList[l])
+                            tempdata.country = countryList[m];
+                            //console.log(tempdata.country)
+                            tempdata.values.year = yearList[l];
+                            //console.log(tempdata.values.year)
+                            a  = getavg(data, countryList[m], yearList[l]);
+                            tempdata.values.avg=a;
+                            //console.log(tempdata.values.avg)
+                            ret = {
+                                country: tempdata.country,
+                                values : {
+                                    year: +tempdata.values.year,
+                                    avgval: +tempdata.values.avg
+                                }
+                            }
+                            //console.log(ret)
+                            myData.push(ret);
+                        }
+                    }
+                    //console.log(myData);    
+                    return myData; 
+                    }
+                function onlyUnique(value, index, self) { 
+                    return self.indexOf(value) === index;
+                }
+                var countryList = data.map(d => d.Origin).filter(onlyUnique);
+                
+                myData= getdata(data);
+                console.log(myData);
+                //console.log(countryList.length);
+                let findata = [];
+                for(p=0; p<countryList.length; p++)
+                {   
+                    var forthiscity = myData.map(d => d).filter(function(d) {return d.country == countryList[p]});
+                    console.log(forthiscity);
+                    let newdata = {};
+                    
+                    newdata = {
+                    country: countryList[p],
+                    value: {
+                        avg: forthiscity.map(d=> +d.values.avgval),
+                        model: forthiscity.map(d=> +d.values.year)
+                    } }
+                    findata.push(newdata);
+                    console.log(findata)
+                }
+                //
+                //
+                //GOT THE DATA
+                //
+
+                //
+                
+                var XScale = d3.scaleBand(); 
+                var YScale = d3.scaleLinear(); 
+                var CScale = d3.scaleOrdinal(); //color scale. 
+   
+                XScale.domain(myData.map(d=>d.values.year)).range([0,width])
+                //console.log(myData.map(d=>d.values.year).filter(onlyUnique))
+                console.log(XScale("74"))
+
+                var getmaxscale = myData.map(d=>d.values.avgval)
+                //console.log(d3.max(getmaxscale));
+
+                YScale.domain([
+                    d3.min(getmaxscale),
+                    d3.max(getmaxscale)
+                ]).range([height,0]);
+
+                CScale.domain(countryList).range(["red", "green", "blue"]);
+
+                //Define the X axis. 
+                xAxis= d3.axisBottom(XScale);
+                yAxis = d3.axisLeft(YScale);
+
+                lineGenerator
+                .x(function(d){return XScale(d.model) })
+                .y(function(d){return YScale(d.avg)});
+
+                svg.append("g")
+                    .attr("class", "axis axis--x")
+                    .attr("transform", "translate("+margin.left+"," + height + ")")
+                    .call(xAxis)
+                .append("text")
+                   .attr("x" , width/2)
+                
+                svg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", "translate(" + margin.left + ",0)")
+                    .call(yAxis)
+                .append("text") 
+                .attr("transform", "rotate(-90)")
+                .attr("x", margin.left-5)
+                .attr("y", -margin.top-20)
+                .attr("dy", ".71em")
+                .style("text-anchor", "end")
+                .style("fill", "black")
+                .text("Average Mileage");
+
+                var lineData= [];
+                var tempdata = [];
+                var aaa = findata.map(d=>d.value);
+
+                for(ii=0; ii<aaa.length; ii++){
+                    tempdata = [];
+                    lineData.ii = ii;
+                    console.log(lineData)
+                    for(ij=0 ; ij<aaa[ii].avg.length; ij++){
+                    tempdata.push({
+                        avg: aaa[ii].avg[ij],
+                        model: aaa[ii].model[ij]
+                        })
+                    }
+                    lineData[ii] = tempdata;
+                    findata[ii].lineplot= tempdata;
+                }
+                //findata.lineplot = [];
+                //findata.lineplot = lineData;
+                console.log(findata)
+
+                var ccountry = svg.selectAll(".ccountry")
+                    .data(findata)
+                    .enter().append("g")
+                    .attr("class", "ccountry");
+
+                //console.log(lineGenerator(findata.lineplot[0]));
+                //console.log(lineData);
+
+                ccountry.append("path")
+                .attr("class", "line")
+                .attr("d", function(d) { return lineGenerator(d.lineplot); })
+                .style("stroke", function(d) { return CScale(d.country); });
+
+                //Legend
+                var legend = svg.selectAll(".legend")
+                        .data(countryList)
+                    .enter().append("g")
+                        .attr("class", "legend")
+                        .attr("transform", function(d,i) { return "translate(0," + i * 20 + ")"; })
+                        .style("fill", function(d){CScale(d)})
+                        .style("opacity","1");
+
+                    legend.append("rect")
+                    .attr("x", width - 18)
+                    .attr("width", 18)
+                    .attr("height", 18)
+                    .style("fill", function(d) { return CScale(d); });
+                legend.append("text")
+                    .attr("x", width - 24)
+                    .attr("y", 9)
+                    .attr("dy", ".35em")
+                    .style("text-anchor", "end")
+                    .text(function(d) {return d; });
+                })  
+        </script>
+    </body>
+</html>

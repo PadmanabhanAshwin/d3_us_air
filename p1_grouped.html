@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>CS590: HW1, Problem 1</title>
+        <script type="text/javascript" src="d3/d3.js"></script>
+        <style type="text/css">
+			.axis path,
+			.axis line {
+				fill: none;
+				stroke: black;
+				shape-rendering: crispEdges;
+			}
+            .x.axis path {
+                display: none;
+            }
+		</style>
+    </head>
+    <body>
+        <script type="text/javascript">
+            //Define the "margins" which will be used to set up the SVG container. 
+            var margin = {top: 20, right: 60, bottom: 30, left: 20},
+            width = 960 - margin.left - margin.right;
+            height = 500 - margin.top - margin.bottom;
+            //Define scales for the big grouping of data, which are the groups from Miles/Gallon. 
+            //Scales are functions that map from the domain of input to range of output. Ordinal Scales are for discrete. 
+            var x0 = d3.scaleBand();
+            //Define scale for the smaller grouping which is the countries. 
+            //We have not set the range for this one below, since we can't. 
+            var x1 = d3.scaleBand();
+            //Create the Scale for the verticle axis. Since this is continuous, we use linear scaling. 
+            var y = d3.scaleLinear();
+                    //.range([height, 0]);
+            //Set up the colours for each country. 
+            
+            //.range(["#98abc5",  "#6b486b", "#ff8c00"]);
+            //Create the x-axis functions- Recall we already have the scale in x0. 
+            var xAxis = d3.axisBottom()
+                        //.scale(x0)
+            //Create the y-axis functions- Recall we already have the scale in y0. 
+            var yAxis = d3.axisLeft()  // check x and y axis scaling. 
+                        //.tickFormat(d3.format(".2s"));
+            //Create the SVG from the variables that we have defined. 
+            var svg = d3.select("body")
+                        .append("svg")
+                            .attr("width", width + margin.left + margin.right)
+                            .attr("height", height + margin.top + margin.bottom)
+                        .append("g")    // check g. 
+                           .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+            // Get the keys from the csv. The keys, are the MPG, 2nd element of the array. 
+
+            var scaletest= d3.scaleOrdinal().domain(["US","Europe","Japan"]).range(["red","green","blue"]);
+            //console.log(scaletest("Japan"));
+        
+            d3.csv("data/old_cars.csv")
+                .then(function(data) {
+                // Create mpg_groups with all mile range. 
+                //console.log(data[1])
+                //var ageNames = d3.keys(data[1]).filter(function(key) { return (key !== "MPG") ; });
+                //console.log(data)
+                var mpgs = data.map(function(d) {
+                    return {
+                        miles: +d.MPG
+                    }});
+                //console.log(mpgs)
+                var mpg_groups2 = mpgs.map(function(x) { return Math.ceil(x.miles /2); });
+                key=mpg_groups2;
+                //console.log(data)
+                var mpgs = {}, mpgs2 = {};
+                for (let entry of data) {
+                    mpgs[+entry.MPG] = {};
+                }
+                for (let entry of Object.keys(mpgs)) {
+                    data = data.map(entry => Object.assign({}, entry, {
+                        extraInfo: {
+                            groupNumber: Math.ceil(+entry.MPG / 2),
+                            count: data.map(x => x.MPG).filter(y => Math.ceil(+entry.MPG / 2) == Math.ceil(y / 2)).length,
+                            countryCount: data.map(x => [x.Origin, +x.MPG]).filter(y => y[0] == entry.Origin && Math.ceil(y[1] / 2) == Math.ceil(+entry.MPG / 2)).length
+                        }
+                    }))
+                }
+                
+                let uniquekeys = [...new Set(mpg_groups2)]; 
+                uniquekeys= uniquekeys.sort(function(a, b){return a-b})
+                //console.log(uniquekeys);
+                //console.log(data2);
+                //console.log(data2.)
+                //setting the x0 band. NOT SURE.
+                x0.domain(uniquekeys).rangeRound([margin.left, width-margin.right]).padding(0.1);
+                //console.log(x0)
+                // Setting the x1 band. 
+                var forcolor= data.map(function(d){return d.Origin});
+                let uniquecountry = [...new Set(forcolor)]; 
+                console.log(Object.values(uniquecountry));
+
+                x1.domain(data.map(function(d){return d.Origin})).rangeRound([0,x0.bandwidth()])
+
+                var colors = d3.scaleBand();
+                //colors.domain(Object.values(uniquecountry)).range(["purple",  "red", "green"]);
+                colors.domain(Object.values(uniquecountry)).range(["#98abc5",  "#6b486b", "#ff8c00"]);
+
+                maxyvaluearray= data.map(function(d) { return d.extraInfo.countryCount});
+                maxyvalue = (d3.max(maxyvaluearray))
+
+                y.domain([0,maxyvalue]).range([height,0]);
+
+                yAxis.scale(y)
+                xAxis.scale(x0)
+                //var colorinput = data.map(function(d){return d.Origin});
+                //console.log(colorinput);
+                //color.domain(data.map(function(d){return d.Origin})).range(["#98abc5",  "#6b486b", "#ff8c00"]);
+
+                //Create x-axis SVG element. 
+                svg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", "translate(" + 0 + "," + height + ")")
+                    .call(xAxis)
+                .append("text")
+                    .attr("x" , width/2)
+                    //.text("MPG group");
+                    
+                //Create y-axis SVG element. 
+                svg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", "translate(" + margin.left + ",0)")
+                    .call(yAxis)
+                .append("text") 
+                    .attr("transform", "rotate(-90)")
+                    //.attr("transform", "translate(0,0)")
+                    .attr("x", margin.left-5)
+                    .attr("y", -margin.top-20)
+                    .attr("dy", ".71em")
+                    .style("text-anchor", "end")
+                    .style("fill", "black")
+                    .text("Number of Cars");
+                // Create Origin
+                //console.log(data);
+                //console.log(Object.keys(data).length);
+                //console.log(typeof(data));
+                function modifydata(data, uniquekeys) {
+                    let newdata = []; 
+                    var len = +Object.keys(uniquekeys).length;
+                    var datalen = +Object.keys(data).length;
+
+                    function getcount(data, i, uniquekeys, datalen){
+                        regions = ["US", "Europe", "Japan"];
+                        ret = [];
+                        for(k=0; k<3; k++){
+                            for(j=0; j<datalen; j++){
+                                if (data[j].extraInfo.groupNumber == uniquekeys[i] && data[j].Origin == regions[k]){
+                                    ret.push({ region: regions[k] ,count: +data[j].extraInfo.countryCount}) ; 
+                                    //ret = Object.assign({region: regions[k] ,count: +data[j].extraInfo.countryCount}, ret)
+                                    break; 
+                                }
+                            }
+                        }
+                        //console.log(ret)
+                        return(ret);
+                    }
+                    for(i=0; i<len; i++) {              
+                        newdata.push({
+                            mpggroup: uniquekeys[i],
+                            values: getcount(data, i, uniquekeys, datalen)
+                            })
+                        };
+                        return(newdata)
+                    }
+
+                newdata = modifydata(data, uniquekeys);
+                console.log(data)
+                console.log(newdata);
+
+                var origin = svg.selectAll(".origin")
+                    .data(newdata.map(function(d){return d} ))
+                .enter().append("g")
+                    .attr("class", "g")
+                    .attr("transform", function(d){
+                        return "translate(" + x0(d["mpggroup"]) + ",0)"; 
+                    });  
+                //console.log(origin)                 
+
+                //SVG element binds to SVG rectagle
+                /*origin.selectAll("rect")
+                        .data(function(d) { return d.extraInfo; })
+                    .enter().append("rect")
+                        .attr("width", x1.bandwidth())
+                        .attr("x", function(d) { return x1(d.groupNumber); })
+                        .attr("y", function(d) {  return y(d.countryCount); })
+                        .attr("height", function(d) { return height - y(d.countryCount); })
+                        .style("fill", function(d) { return color(d.groupNumber); });*/
+                    
+                    origin.selectAll("rect")
+                        .data(function(d){return d.values} )
+                    .enter().append("rect")
+                        .attr("width", x1.bandwidth())
+                        .attr("x", function(d) { return x1(d.region); })
+                        .attr("y", function(d) {  return y(d.count) })
+                        .attr("height", function(d) { return height - y(d.count); })
+                        .style("fill", function(d) { return scaletest(d.region); });
+                    
+                    //Legend
+                    var legend = svg.selectAll(".legend")
+                        .data(uniquecountry.map(function(d){return d}))
+                    .enter().append("g")
+                        .attr("class", "legend")
+                        .attr("transform", function(d,i) { return "translate(0," + i * 20 + ")"; })
+                        .style("fill", function(d){scaletest(d)})
+                        .style("opacity","1");
+                    
+                    legend.append("rect")
+                        .attr("x", width - 18)
+                        .attr("width", 18)
+                        .attr("height", 18)
+                        .style("fill", function(d) { return scaletest(d); });
+                    legend.append("text")
+                        .attr("x", width - 24)
+                        .attr("y", 9)
+                        .attr("dy", ".35em")
+                        .style("text-anchor", "end")
+                        .text(function(d) {return d; });
+                })
+                
+                //.catch(function(error){
+                //   console.log("Hi")
+                //})
+        </script>
+    </body>
+</html>
